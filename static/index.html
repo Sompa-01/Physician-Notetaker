@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Physician Notetaker - Medical Transcript Analysis</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            margin-bottom: 30px;
+        }
+
+        .input-section {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            display: none;
+        }
+
+        .results.active {
+            display: block;
+        }
+
+        .result-section {
+            margin-bottom: 30px;
+        }
+
+        .result-section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .result-section h3 {
+            color: #764ba2;
+            margin: 20px 0 10px;
+            font-size: 1.2em;
+        }
+
+        .tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .tag {
+            background: #f0f0ff;
+            color: #667eea;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .soap-section {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .soap-section strong {
+            color: #764ba2;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .sentiment-item {
+            background: #fff;
+            padding: 15px;
+            border-left: 4px solid #667eea;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+
+        .sentiment-item .utterance {
+            font-style: italic;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .sentiment-badges {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .badge {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-anxious { background: #ffe0e0; color: #d32f2f; }
+        .badge-neutral { background: #e0e0e0; color: #666; }
+        .badge-reassured { background: #e0f7e9; color: #2e7d32; }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .error.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏥 Physician Notetaker</h1>
+            <p>AI-Powered Medical Transcript Analysis & SOAP Note Generation</p>
+        </div>
+
+        <div class="card">
+            <div class="input-section">
+                <label for="transcript">📝 Medical Transcript</label>
+                <textarea 
+                    id="transcript" 
+                    placeholder="Paste your doctor-patient conversation here...
+
+Example:
+Doctor: Good morning, Ms. Jones. How are you feeling today?
+Patient: Good morning, doctor. I'm doing better, but I still have some discomfort now and then.
+Doctor: I understand you were in a car accident last September. Can you walk me through what happened?
+Patient: Yes, it was on September 1st..."
+                ></textarea>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-primary" onclick="analyzeTranscript()">
+                    🔍 Analyze Transcript
+                </button>
+                <button class="btn-secondary" onclick="clearAll()">
+                    🗑️ Clear All
+                </button>
+            </div>
+
+            <div class="error" id="error"></div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Analyzing transcript... This may take a moment.</p>
+            </div>
+        </div>
+
+        <div class="results" id="results">
+            <div class="card">
+                <div class="result-section">
+                    <h2>📋 Extracted Entities</h2>
+                    
+                    <h3>Symptoms</h3>
+                    <div class="tag-list" id="symptoms"></div>
+                    
+                    <h3>Diagnosis</h3>
+                    <div class="tag-list" id="diagnosis"></div>
+                    
+                    <h3>Treatment</h3>
+                    <div class="tag-list" id="treatment"></div>
+                    
+                    <h3>Prognosis</h3>
+                    <div class="tag-list" id="prognosis"></div>
+                </div>
+
+                <div class="result-section">
+                    <h2>🔑 Keywords</h2>
+                    <div class="tag-list" id="keywords"></div>
+                </div>
+
+                <div class="result-section">
+                    <h2>💭 Sentiment & Intent Analysis</h2>
+                    <div id="sentiment-list"></div>
+                </div>
+
+                <div class="result-section">
+                    <h2>📄 SOAP Note</h2>
+                    <div id="soap-note"></div>
+                </div>
+
+                <div class="result-section">
+                    <h2>📊 Structured Summary</h2>
+                    <div id="summary"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function analyzeTranscript() {
+            const transcript = document.getElementById('transcript').value.trim();
+            
+            if (!transcript) {
+                showError('Please enter a transcript to analyze.');
+                return;
+            }
+
+            // Hide previous results and errors
+            document.getElementById('results').classList.remove('active');
+            document.getElementById('error').classList.remove('active');
+            document.getElementById('loading').classList.add('active');
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ transcript })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                displayResults(data);
+            } catch (error) {
+                showError('Analysis failed. Please try again. ' + error.message);
+            } finally {
+                document.getElementById('loading').classList.remove('active');
+            }
+        }
+
+        function displayResults(data) {
+            // Entities
+            displayTags('symptoms', data.entities.Symptoms);
+            displayTags('diagnosis', data.entities.Diagnosis);
+            displayTags('treatment', data.entities.Treatment);
+            displayTags('prognosis', data.entities.Prognosis);
+
+            // Keywords
+            displayTags('keywords', data.keywords);
+
+            // Sentiment & Intent
+            displaySentiment(data.sentiment_intent);
+
+            // SOAP Note
+            displaySOAP(data.soap);
+
+            // Summary
+            displaySummary(data.structured_summary);
+
+            // Show results
+            document.getElementById('results').classList.add('active');
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function displayTags(elementId, items) {
+            const container = document.getElementById(elementId);
+            if (!items || items.length === 0) {
+                container.innerHTML = '<span class="tag">None detected</span>';
+                return;
+            }
+            container.innerHTML = items.map(item => 
+                `<span class="tag">${item}</span>`
+            ).join('');
+        }
+
+        function displaySentiment(sentiments) {
+            const container = document.getElementById('sentiment-list');
+            if (!sentiments || sentiments.length === 0) {
+                container.innerHTML = '<p>No sentiment data available.</p>';
+                return;
+            }
+
+            container.innerHTML = sentiments.map(item => {
+                const sentimentClass = item.Sentiment.toLowerCase();
+                return `
+                    <div class="sentiment-item">
+                        <div class="utterance">"${item.utterance}"</div>
+                        <div class="sentiment-badges">
+                            <span class="badge badge-${sentimentClass}">${item.Sentiment}</span>
+                            <span class="badge badge-neutral">${item.Intent}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function displaySOAP(soap) {
+            const container = document.getElementById('soap-note');
+            container.innerHTML = `
+                <div class="soap-section">
+                    <strong>Subjective:</strong>
+                    <p><strong>Chief Complaint:</strong> ${soap.Subjective.Chief_Complaint || 'N/A'}</p>
+                    <p><strong>History of Present Illness:</strong> ${soap.Subjective.History_of_Present_Illness || 'N/A'}</p>
+                </div>
+                <div class="soap-section">
+                    <strong>Objective:</strong>
+                    <p><strong>Physical Exam:</strong> ${soap.Objective.Physical_Exam || 'N/A'}</p>
+                    <p><strong>Observations:</strong> ${soap.Objective.Observations || 'N/A'}</p>
+                </div>
+                <div class="soap-section">
+                    <strong>Assessment:</strong>
+                    <p><strong>Diagnosis:</strong> ${soap.Assessment.Diagnosis.join(', ') || 'N/A'}</p>
+                    <p><strong>Severity:</strong> ${soap.Assessment.Severity || 'N/A'}</p>
+                </div>
+                <div class="soap-section">
+                    <strong>Plan:</strong>
+                    <p><strong>Treatment:</strong> ${soap.Plan.Treatment.join(', ') || 'N/A'}</p>
+                    <p><strong>Follow-Up:</strong> ${soap.Plan.Follow_Up || 'N/A'}</p>
+                </div>
+            `;
+        }
+
+        function displaySummary(summary) {
+            const container = document.getElementById('summary');
+            container.innerHTML = `
+                <div class="soap-section">
+                    <p><strong>Patient Name:</strong> ${summary.Patient_Name || 'Not detected'}</p>
+                    <p><strong>Symptoms:</strong> ${summary.Symptoms.join(', ') || 'None'}</p>
+                    <p><strong>Diagnosis:</strong> ${summary.Diagnosis.join(', ') || 'None'}</p>
+                    <p><strong>Treatment:</strong> ${summary.Treatment.join(', ') || 'None'}</p>
+                    <p><strong>Current Status:</strong> ${summary.Current_Status || 'N/A'}</p>
+                    <p><strong>Prognosis:</strong> ${summary.Prognosis.join(', ') || 'None'}</p>
+                </div>
+            `;
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('active');
+        }
+
+        function clearAll() {
+            document.getElementById('transcript').value = '';
+            document.getElementById('results').classList.remove('active');
+            document.getElementById('error').classList.remove('active');
+        }
+    </script>
+</body>
+</html>
