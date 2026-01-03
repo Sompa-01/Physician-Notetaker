@@ -1,8 +1,8 @@
 fastapi
 uvicorn[standard]
-transformers
 spacy
+pydantic
+transformers
 keybert
 sentence-transformers
 scikit-learn
-pydantic
